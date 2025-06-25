@@ -1,0 +1,22 @@
+{
+  "name": "javascript-buildathon",
+  "version": "1.0.0",
+  "description": "Gen AI prototype using GitHub Models",
+  "main": "sample.js",
+  "scripts": {
+    "start": "node sample.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "github-models",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@azure-rest/ai-inference": "^1.0.0-beta.2",
+    "@azure/core-auth": "^1.3.0",
+    "@azure/core-rest-pipeline": "^1.10.0"
+  }
+}
