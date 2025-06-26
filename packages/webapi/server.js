@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { AzureChatOpenAI } from "@langchain/openai";
 import { BufferMemory } from "langchain/memory";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
+import { AgentService } from "./agentService.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -36,6 +37,9 @@ const chatModel = new AzureChatOpenAI({
   temperature: 1,
   maxTokens: 4096,
 });
+
+// Initialize Agent Service
+const agentService = new AgentService();
 
 // Session-based in-memory store for conversation history
 const sessionMemories = {};
@@ -153,12 +157,37 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Chat endpoint (simplified interface with RAG)
+// Chat endpoint (simplified interface with RAG and Agent support)
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
   const useRAG = req.body.useRAG === undefined ? true : req.body.useRAG;
+  const useAgent = req.body.useAgent === false ? false : true; // Default to agent mode
   const sessionId = req.body.sessionId || "default";
 
+  console.log(
+    `Chat request - useRAG: ${useRAG}, useAgent: ${useAgent}, session: ${sessionId}`
+  );
+
+  // If agent mode is requested, use the agent service
+  if (useAgent) {
+    try {
+      const agentResponse = await agentService.processMessage(
+        sessionId,
+        userMessage
+      );
+      return res.json({
+        reply: agentResponse.reply,
+        sources: [],
+        mode: "agent",
+      });
+    } catch (error) {
+      console.error("Agent mode error:", error);
+      // Fall back to regular mode if agent fails
+      console.log("Falling back to regular mode due to agent error");
+    }
+  }
+
+  // Regular mode with RAG support
   let sources = [];
 
   const memory = getSessionMemory(sessionId);
@@ -201,7 +230,11 @@ app.post("/chat", async (req, res) => {
       { output: response.content }
     );
 
-    res.json({ reply: response.content, sources });
+    res.json({
+      reply: response.content,
+      sources,
+      mode: useRAG ? "rag" : "basic",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({

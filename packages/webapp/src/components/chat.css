@@ -8,6 +8,8 @@
 .chat-header {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   padding: 8px 16px 0 16px;
   background: transparent;
 }
@@ -25,6 +27,22 @@
 
 .clear-cache-btn:hover {
   background: #d9363e;
+}
+
+.agent-toggle,
+.rag-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.agent-toggle input:disabled + span,
+.rag-toggle input:disabled + span {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .chat-container {
@@ -132,15 +150,6 @@ button:hover {
 button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
-}
-
-/* RAG Toggle Styles */
-.rag-toggle {
-  float: right;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.9rem;
 }
 
 /* System Message Styles */
