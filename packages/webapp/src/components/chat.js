@@ -25,7 +25,7 @@ export class ChatInterface extends LitElement {
     this.isLoading = false;
     this.isRetrieving = false;
     this.ragEnabled = true; // Enable by default
-    
+
     // Generate or load session ID
     this.sessionId = this._getOrCreateSessionId();
   }
@@ -135,22 +135,24 @@ export class ChatInterface extends LitElement {
     this.messages = [];
     // Generate new session ID when clearing chat
     this.sessionId = this._generateSessionId();
-    localStorage.setItem('chat-session-id', this.sessionId);
+    localStorage.setItem("chat-session-id", this.sessionId);
   }
 
   // Generate or retrieve session ID
   _getOrCreateSessionId() {
-    let sessionId = localStorage.getItem('chat-session-id');
+    let sessionId = localStorage.getItem("chat-session-id");
     if (!sessionId) {
       sessionId = this._generateSessionId();
-      localStorage.setItem('chat-session-id', sessionId);
+      localStorage.setItem("chat-session-id", sessionId);
     }
     return sessionId;
   }
 
   // Generate a unique session ID
   _generateSessionId() {
-    return 'session-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+    return (
+      "session-" + Math.random().toString(36).substr(2, 9) + "-" + Date.now()
+    );
   }
 
   // Handle RAG toggle change

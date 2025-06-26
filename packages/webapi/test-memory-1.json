@@ -1,0 +1,5 @@
+{
+  "message": "Hello, my name is John. What are the vacation policies?",
+  "useRAG": true,
+  "sessionId": "test-session-123"
+}

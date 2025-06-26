@@ -1,0 +1,5 @@
+{
+  "message": "Hello! How are you?",
+  "useRAG": false,
+  "sessionId": "test-simple"
+}

@@ -1,0 +1,5 @@
+{
+  "message": "What's my name?",
+  "useRAG": false,
+  "sessionId": "test-session-123"
+}

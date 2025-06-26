@@ -173,13 +173,17 @@ app.post("/chat", async (req, res) => {
   const systemMessage = useRAG
     ? {
         role: "system",
-        content: sources.length > 0
-          ? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.\n\n--- EMPLOYEE HANDBOOK EXCERPTS ---\n${sources.join('\n\n')}\n--- END OF EXCERPTS ---`
-          : `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: \"I'm sorry, I don't know. The employee handbook does not contain information about that.\"`,
+        content:
+          sources.length > 0
+            ? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.\n\n--- EMPLOYEE HANDBOOK EXCERPTS ---\n${sources.join(
+                "\n\n"
+              )}\n--- END OF EXCERPTS ---`
+            : `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: \"I'm sorry, I don't know. The employee handbook does not contain information about that.\"`,
       }
     : {
         role: "system",
-        content: "You are a helpful and knowledgeable assistant. Answer the user's questions concisely and informatively.",
+        content:
+          "You are a helpful and knowledgeable assistant. Answer the user's questions concisely and informatively.",
       };
 
   try {
@@ -192,7 +196,10 @@ app.post("/chat", async (req, res) => {
 
     const response = await chatModel.invoke(messages);
 
-    await memory.saveContext({ input: userMessage }, { output: response.content });
+    await memory.saveContext(
+      { input: userMessage },
+      { output: response.content }
+    );
 
     res.json({ reply: response.content, sources });
   } catch (err) {
@@ -200,7 +207,7 @@ app.post("/chat", async (req, res) => {
     res.status(500).json({
       error: "Model call failed",
       message: err.message,
-      reply: "Sorry, I encountered an error. Please try again."
+      reply: "Sorry, I encountered an error. Please try again.",
     });
   }
 });

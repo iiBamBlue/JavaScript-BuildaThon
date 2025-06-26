@@ -1,0 +1,5 @@
+{
+  "message": "How many vacation days would I get after working there for 3 years?",
+  "useRAG": false,
+  "sessionId": "test-session-123"
+}
