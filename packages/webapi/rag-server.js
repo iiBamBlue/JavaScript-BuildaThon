@@ -6,17 +6,23 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-// Note: pdf-parse import removed temporarily due to import issues
-// import pdfParse from "pdf-parse";
-
-// Load environment variables
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+console.log("Environment check:");
+console.log(
+  "CUSTOM_OPENAI_API_KEY:",
+  process.env.CUSTOM_OPENAI_API_KEY ? "✓ Loaded" : "✗ Missing"
+);
+console.log("Current working directory:", process.cwd());
+console.log("Script directory:", __dirname);
+
 const projectRoot = path.resolve(__dirname, "../..");
-const pdfPath = path.join(projectRoot, "data/employee_handbook.pdf"); // Update with your PDF file name
-const textPath = path.join(projectRoot, "data/contoso-employee-handbook.txt"); // Text file fallback
+const textPath = path.join(projectRoot, "data/contoso-employee-handbook.txt");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,7 +34,7 @@ app.use(express.json());
 // Initialize OpenAI client for Azure
 const client = new OpenAI({
   baseURL:
-    "https://aistudioaiservices044508068113.openai.azure.com/openai/deployments/gpt-4o",
+    "https://aistudioaiservices044508068113.openai.azure.com/openai/deployments/gpt-4.1",
   apiKey: process.env.CUSTOM_OPENAI_API_KEY,
   defaultQuery: { "api-version": "2024-02-01" },
   defaultHeaders: {
@@ -37,57 +43,55 @@ const client = new OpenAI({
 });
 
 // RAG functionality
-let pdfText = null;
-let pdfChunks = [];
+let documentText = null;
+let documentChunks = [];
 const CHUNK_SIZE = 800;
 
-async function loadPDF() {
-  if (pdfText) return pdfText;
+async function loadDocument() {
+  if (documentText) return documentText;
 
-  console.log("Looking for PDF at:", pdfPath);
   console.log("Looking for text file at:", textPath);
 
-  // For now, we'll work with text files only due to pdf-parse import issues
-  // TODO: Fix pdf-parse import and re-enable PDF support
   if (fs.existsSync(textPath)) {
     console.log("Loading text file...");
-    pdfText = fs.readFileSync(textPath, "utf-8");
+    documentText = fs.readFileSync(textPath, "utf-8");
   } else {
-    console.log("No handbook file found at text location");
+    console.log("No handbook file found");
     return "No handbook file found.";
   }
 
-  console.log("Document loaded, length:", pdfText.length);
+  console.log("Document loaded, length:", documentText.length);
   let currentChunk = "";
-  const words = pdfText.split(/\s+/);
+  const words = documentText.split(/\s+/);
 
   for (const word of words) {
     if ((currentChunk + " " + word).length <= CHUNK_SIZE) {
       currentChunk += (currentChunk ? " " : "") + word;
     } else {
-      pdfChunks.push(currentChunk);
+      documentChunks.push(currentChunk);
       currentChunk = word;
     }
   }
-  if (currentChunk) pdfChunks.push(currentChunk);
-  console.log("Document split into", pdfChunks.length, "chunks");
-  return pdfText;
+  if (currentChunk) documentChunks.push(currentChunk);
+  console.log("Document split into", documentChunks.length, "chunks");
+  return documentText;
 }
 
 function retrieveRelevantContent(query) {
   console.log("Searching for query:", query);
-  console.log("Available chunks:", pdfChunks.length);
+  console.log("Available chunks:", documentChunks.length);
 
   const queryTerms = query
     .toLowerCase()
-    .split(/\s+/) // Converts query to relevant search terms
+    .split(/\s+/)
     .filter((term) => term.length > 3)
     .map((term) => term.replace(/[.,?!;:()"']/g, ""));
 
   console.log("Query terms:", queryTerms);
 
   if (queryTerms.length === 0) return [];
-  const scoredChunks = pdfChunks.map((chunk) => {
+
+  const scoredChunks = documentChunks.map((chunk) => {
     const chunkLower = chunk.toLowerCase();
     let score = 0;
     for (const term of queryTerms) {
@@ -113,36 +117,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// Chat completion endpoint
-app.post("/api/chat", async (req, res) => {
-  try {
-    const { messages } = req.body;
-
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "Messages array is required" });
-    }
-
-    const response = await client.chat.completions.create({
-      messages: messages,
-      model: "gpt-4.1",
-      max_tokens: 4096,
-      temperature: 0.7,
-    });
-
-    res.json({
-      message: response.choices[0].message.content,
-      usage: response.usage,
-    });
-  } catch (error) {
-    console.error("Error in chat endpoint:", error);
-    res.status(500).json({
-      error: "Internal server error",
-      details: error.message,
-    });
-  }
-});
-
-// Chat endpoint (simplified interface with RAG)
+// Chat endpoint with RAG
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
   const useRAG = req.body.useRAG === undefined ? true : req.body.useRAG;
@@ -150,7 +125,7 @@ app.post("/chat", async (req, res) => {
   let sources = [];
 
   if (useRAG) {
-    await loadPDF();
+    await loadDocument();
     sources = retrieveRelevantContent(userMessage);
     if (sources.length > 0) {
       messages.push({
@@ -181,7 +156,7 @@ app.post("/chat", async (req, res) => {
   try {
     const response = await client.chat.completions.create({
       messages: messages,
-      model: "gpt-4o",
+      model: "gpt-4.1",
       max_tokens: 4096,
       temperature: 1,
       top_p: 1,
@@ -204,6 +179,5 @@ app.post("/chat", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`Chat endpoint: http://localhost:${PORT}/api/chat`);
-  console.log(`Simple chat endpoint: http://localhost:${PORT}/chat`);
+  console.log(`Chat endpoint: http://localhost:${PORT}/chat`);
 });
